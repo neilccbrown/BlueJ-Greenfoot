@@ -81,6 +81,8 @@
 		<key>VMOptions</key>
         <array>
            <string>Xmx512M</string>
+           <string>XX:+TieredCompilation</string>
+           <string>XX:TieredStopAtLevel=1</string>
         </array>
 	</dict>
 	<key>NSHighResolutionCapable</key>
