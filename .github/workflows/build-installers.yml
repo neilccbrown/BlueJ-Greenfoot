@@ -127,7 +127,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           brew install xz
-          wget --no-verbose https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.12.sdk.tar.xz
+          wget --no-verbose https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.0.sdk.tar.xz
           xz -d MacOSX*.tar.xz
           tar -xf MacOSX*.tar
       - name: Check install locations
@@ -143,7 +143,7 @@ jobs:
           sed -i '.bak' 's:openjfx_path=.*:openjfx_path=${{ github.workspace }}/javafx:' bluej/build.properties
           sed -i '.bak' 's:openjfx_monocle_path=.*:openjfx_monocle_path=${{ github.workspace }}/javafx:' bluej/build.properties
           # TODO make this a property:
-          sed -i '.bak' 's:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk:${{ github.workspace}}/MacOSX10.12.sdk:' bluej/package/macfiles/nativelauncher/compile.sh
+          sed -i '.bak' 's:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk:${{ github.workspace}}/MacOSX11.0.sdk:' bluej/package/macfiles/nativelauncher/compile.sh
           cd bluej && ant clean && ant update-version-number && ant mac && cd ..
           cd greenfoot && ant clean && ant update-version-number && ant mac && cd ..
           # We don't need these installers:
