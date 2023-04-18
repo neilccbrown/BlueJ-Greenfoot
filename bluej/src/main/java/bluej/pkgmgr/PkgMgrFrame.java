@@ -874,7 +874,8 @@ public class PkgMgrFrame
      * @return True is successful
      */
     public static boolean doOpen(File projectPath, PkgMgrFrame pmf)
-    {     
+    {
+        Debug.printCallStack("Requested to open: " + projectPath.getAbsolutePath());
         boolean createdNewFrame = false;
         if(pmf == null && PkgMgrFrame.frames.size() > 0) {
             pmf = PkgMgrFrame.frames.get(0);
