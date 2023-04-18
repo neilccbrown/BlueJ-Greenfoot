@@ -31,8 +31,10 @@ import threadchecker.Tag;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -605,6 +607,15 @@ public class Boot
                     @Override
                     public void handleOpenFilesAction(com.sun.glass.ui.Application app, long time, String[] files)
                     {
+                        try
+                        {
+                            Files.write(new File("/Users/neil/bluej-tmp-log- " + System.currentTimeMillis() + ".txt").toPath(), List.of("Open file: " + files[0]));
+                        }
+                        catch (IOException e)
+                        {
+                            throw new RuntimeException(e);
+                        }
+
                         // It turns out that we can get a spurious file open event for the Java
                         // classpath.  We spot this and ignore it by looking for colons in the
                         // file path
