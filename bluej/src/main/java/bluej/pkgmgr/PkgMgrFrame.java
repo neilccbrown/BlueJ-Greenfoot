@@ -1954,6 +1954,8 @@ public class PkgMgrFrame
      */
     public void aboutBlueJ()
     {
+        Debug.message("Event handler: " + com.sun.glass.ui.Application.GetApplication().getEventHandler());
+        
         String[] translatorNames = {
                 "Afrikaans",    "Petri Jooste",
                 "Arabic",       "Abdelkader Zitouni",
