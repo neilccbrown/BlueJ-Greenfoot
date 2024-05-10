@@ -665,6 +665,18 @@ int WINAPI WinMain
         }
     }
 
+    // Add Java Archive commands
+    {
+        string archiveArgs;
+        archiveArgs += string(TEXT("-XX:ArchiveClassesAtExit=\"")) + userHomePath + TEXT("/ClassArchive-") + appVersion + TEXT(".jsa\"");
+        archiveArgs += string(TEXT(" -XX:SharedArchiveFile=\"")) + userHomePath + TEXT("/ClassArchive-") + appVersion + TEXT(".jsa\"");
+        int argCount = 0;
+        LPWSTR *args = CommandLineToArgvW(archiveArgs.c_str(), &argCount);
+        for (int i = 0; i < argCount; i++) {
+            windowsvmargs.push_back(args[i]);
+        }
+    }
+
     // Check for VM in bluej.defs
     string defsVm = getBlueJProperty(VM_PROP);
     if (defsVm.length() != 0) {

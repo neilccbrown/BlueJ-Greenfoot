@@ -238,6 +238,8 @@
             <option value="-Dapple.laf.useScreenMenuBar"/>
             <option value="-Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2"/>
             <option value="-Xmx512M" name="Xmx"/>
+            <option value="-XX:ArchiveClassesAtExit=~/Library/Preferences/org.bluej/ClassArchive-${bluej.version}.jsa"/>
+            <option value="-XX:SharedArchiveFile=~/Library/Preferences/org.bluej/ClassArchive-${bluej.version}.jsa"/>
             <!-- <option value="- -add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED"/> -->
         </bundleapp>
 
