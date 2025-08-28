@@ -19,7 +19,7 @@ dependencies {
     implementation 'org.apache.httpcomponents:httpmime:4.1.1'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r'
     implementation 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:7.1.0.202411261347-r'
-    implementation 'org.fxmisc.wellbehaved:wellbehavedfx:0.3.3'    
+    implementation 'org.fxmisc.wellbehaved:wellbehavedfx:0.3.3'
     implementation 'org.junit.jupiter:junit-jupiter:5.5.2'
     implementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     implementation 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
@@ -36,39 +36,70 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest-library:1.3'
     testImplementation 'org.testfx:testfx-core:4.0.15-alpha'
     testImplementation 'org.testfx:testfx-junit:4.0.15-alpha'
-    testImplementation 'org.testfx:openjfx-monocle:jdk-12.0.1+2'
+    testImplementation 'io.github.sebivenlo:openjfx-monocle:jdk-21.0.1'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 compileJava {
     options.compilerArgs += [
         "-Xplugin:threadchecker.TCPlugin",
         // we use some private packages/classes currently:
-        "--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED"]
+        // TODO: Without commenting this out I get the following error when trying to run tests:
+        //       error: exporting a package from system module javafx.graphics is not allowed with --release
+        // "--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED"
+    ]
 }
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.release = 21
 }
 
+// TODO: It seems that exposing those modules is necessary to run tests on my machine
+def commonExports = [
+        "--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED",
+        "--add-exports=javafx.graphics/com.sun.javafx.util=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.javafx.util=ALL-UNNAMED",
+        "--add-exports=javafx.base/com.sun.javafx.logging=ALL-UNNAMED",
+        "--add-opens=javafx.base/com.sun.javafx.logging=ALL-UNNAMED",
+        "--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED",
+        "--add-exports=javafx.graphics/com.sun.javafx.scene.input=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.javafx.scene.input=ALL-UNNAMED",
+        "--add-exports=javafx.graphics/com.sun.glass.ui.delegate=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.glass.ui.delegate=ALL-UNNAMED",
+    ]
+
+def testJvmArgs = // Headless is the default because headed GUI tests are quite a surprise and cause havoc:
+    commonExports +
+        (("true".equals(project.findProperty("headless")) || project.findProperty("headless") == null) ? [
+            // Headless:
+            '-Djava.awt.headless=true',
+            '-Dtestfx.robot=glass',
+            '-Dtestfx.headless=true',
+            '-Dprism.order=sw',
+            '-Dprism.text=t2k',
+            '-Dglass.platform=Monocle',
+            '-Dmonocle.platform=Headless',
+            '-Dheadless.geometry=1920x1200-32',
+            ] : [
+            // Headed:
+            '-Djava.awt.headless=false',
+            '-Dtestfx.robot=glass',
+            '-Dprism.text=t2k',
+        ])
+
 test {
+    maxParallelForks = 2 * Runtime.runtime.availableProcessors()
+
     useJUnit()
-    jvmArgs += 
-            // Headless is the default because headed GUI tests are quite a surprise and cause havoc:
-            (("true".equals(project.findProperty("headless")) || project.findProperty("headless") == null) ? [
-                    // Headless:
-                    '-Djava.awt.headless=true',
-                    '-Dtestfx.robot=glass',
-                    '-Dtestfx.headless=true',
-                    '-Dprism.order=sw',
-                    '-Dprism.text=t2k',
-                    '-Dglass.platform=Monocle',
-                    '-Dmonocle.platform=Headless',
-                    '-Dheadless.geometry=1920x1200-32'] : [
-                    // Headed:
-                    '-Djava.awt.headless=true',
-                    '-Dtestfx.robot=glass',
-                    '-Dprism.text=t2k',
-            ])
+
+    jvmArgs += testJvmArgs
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
 }
 
 repositories {
@@ -124,6 +155,7 @@ task runBlueJ(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = "bluej.Boot"
     args "-bluej.debug=true"
+    jvmArgs = commonExports
     //systemProperties(Map.of("javafx.sg.warn", "true"));
 }
 
