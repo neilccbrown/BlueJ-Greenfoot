@@ -31,6 +31,6 @@ jobs:
       - name: Build and Test
         env:
           DISPLAY: ":42.0"
-        run: ./gradlew build test -Pheadless=false --info --stacktrace --no-daemon
+        run: ./gradlew build test -Pheadless=true --info --stacktrace --no-daemon
       - name: Check copyright
         run: bash check-copyright.sh
