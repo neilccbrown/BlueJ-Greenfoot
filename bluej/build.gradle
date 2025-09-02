@@ -90,7 +90,7 @@ def testJvmArgs = // Headless is the default because headed GUI tests are quite 
         ])
 
 test {
-    maxParallelForks = 2 * Runtime.runtime.availableProcessors()
+    //maxParallelForks = 4 * Runtime.runtime.availableProcessors()
 
     useJUnit()
 
