@@ -256,7 +256,7 @@ public class CompilationUnitContextLoader implements AutoCloseable {
      *
      * @return A new CompilationUnitContext with the data from ClassInfo
      */
-    @NotNull public CompilationUnitContext updateContextFromClassInfo(@NotNull String qualifiedName, @NotNull ClassInfo info) {
+    @NotNull public CompilationUnitContext updateContextFromClassInfo(@NotNull String qualifiedName, @NotNull Path projectDir, @NotNull ClassInfo info) {
         // Extract ClassInfo data first (handles FX thread requirements)
         ClassInfoData data = extractClassInfoData(info);
 
@@ -264,7 +264,7 @@ public class CompilationUnitContextLoader implements AutoCloseable {
 
         context.setComments(PropertyContextFormat.fromProperties(data.comments));
 
-        Path contextFilePath = constructContextFilePath(qualifiedName);
+        Path contextFilePath = projectDir.resolve(constructContextFilePath(qualifiedName));
 
         try {
             File contextFile = contextFilePath.toFile();
@@ -341,7 +341,7 @@ public class CompilationUnitContextLoader implements AutoCloseable {
         // Need to execute on FX thread
         CompletableFuture<ClassInfoData> future = new CompletableFuture<>();
 
-        Platform.runLater(() -> {
+        Runnable infoGetter = () -> {
             try {
                 String className = info.getName();
                 Properties comments = info.getComments();
@@ -349,9 +349,16 @@ public class CompilationUnitContextLoader implements AutoCloseable {
             } catch (Exception e) {
                 future.completeExceptionally(e);
             }
-        });
+        };
 
         try {
+            if (Platform.isFxApplicationThread()) {
+                infoGetter.run();
+            }
+            else {
+                Platform.runLater(infoGetter);
+            }
+
             return future.get();
         } catch (Exception e) {
             throw new RuntimeException("Failed to extract ClassInfo data", e);

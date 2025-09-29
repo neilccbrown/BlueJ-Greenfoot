@@ -1213,7 +1213,7 @@ public class ClassTarget extends DependentTarget
      * @throws IOException if an I/O error occurs while saving
      */
     public void updateMetadata(@NotNull ClassInfo info) throws IOException {
-        contextLoader.updateContextFromClassInfo(getQualifiedName(), info);
+        contextLoader.updateContextFromClassInfo(getQualifiedName(), getPackage().getProject().getProjectDir().toPath(), info);
     }
 
     /**
