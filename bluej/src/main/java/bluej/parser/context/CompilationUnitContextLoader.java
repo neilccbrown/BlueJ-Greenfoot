@@ -25,6 +25,8 @@ package bluej.parser.context;
 import bluej.parser.symtab.ClassInfo;
 import javafx.application.Platform;
 import org.jetbrains.annotations.NotNull;
+import threadchecker.OnThread;
+import threadchecker.Tag;
 
 import java.io.*;
 import java.net.URL;
@@ -256,6 +258,7 @@ public class CompilationUnitContextLoader implements AutoCloseable {
      *
      * @return A new CompilationUnitContext with the data from ClassInfo
      */
+    @OnThread(Tag.FXPlatform)
     @NotNull public CompilationUnitContext updateContextFromClassInfo(@NotNull String qualifiedName, @NotNull Path projectDir, @NotNull ClassInfo info) {
         // Extract ClassInfo data first (handles FX thread requirements)
         ClassInfoData data = extractClassInfoData(info);
@@ -337,29 +340,12 @@ public class CompilationUnitContextLoader implements AutoCloseable {
      * @param info The ClassInfo to access
      * @return A ClassInfoData record containing the extracted data
      */
+    @OnThread(Tag.FXPlatform)
     static ClassInfoData extractClassInfoData(@NotNull ClassInfo info) {
-        // Need to execute on FX thread
-        CompletableFuture<ClassInfoData> future = new CompletableFuture<>();
-
-        Runnable infoGetter = () -> {
-            try {
-                String className = info.getName();
-                Properties comments = info.getComments();
-                future.complete(new ClassInfoData(className, comments));
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-            }
-        };
-
         try {
-            if (Platform.isFxApplicationThread()) {
-                infoGetter.run();
-            }
-            else {
-                Platform.runLater(infoGetter);
-            }
-
-            return future.get();
+            String className = info.getName();
+            Properties comments = info.getComments();
+            return new ClassInfoData(className, comments);
         } catch (Exception e) {
             throw new RuntimeException("Failed to extract ClassInfo data", e);
         }

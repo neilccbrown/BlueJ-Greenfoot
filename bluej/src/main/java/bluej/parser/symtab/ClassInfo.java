@@ -25,8 +25,6 @@ import java.util.*;
 
 import bluej.utility.JavaUtils;
 import bluej.utility.SortedProperties;
-import threadchecker.OnThread;
-import threadchecker.Tag;
 
 /**
  * Information about a class found in a source file. The information is
@@ -53,7 +51,6 @@ public final class ClassInfo
 
     private boolean foundPublicClass = false;
 
-    @OnThread(value = Tag.Any, ignoreParent = true)
     private String name;
     private String superclass;
 
@@ -61,7 +58,6 @@ public final class ClassInfo
     private List<String> used = new ArrayList<String>();
 
     private List<String> permits = new ArrayList<>();
-    @OnThread(value = Tag.Any, ignoreParent = true)
     private List<SavedComment> comments = new LinkedList<SavedComment>();
 
     private List<String> typeParameterTexts = new ArrayList<String>();
@@ -80,16 +76,13 @@ public final class ClassInfo
 
     public class SavedComment
     {
-        @OnThread(value = Tag.Any, ignoreParent = true)
         public final String target; // the method signature of the item we have a
                                     // comment for. Can be class name or interface
                                     // name in the case of a comment for a whole
                                     // class/interface
 
-        @OnThread(value = Tag.Any, ignoreParent = true)
         public final String comment;  // the actual text of the comment
 
-        @OnThread(value = Tag.Any, ignoreParent = true)
         public final String paramnames;  // if this is a method or constructor, then
                                          // this is a comma seperated list of name
                                          // associated with the parameters
@@ -103,7 +96,6 @@ public final class ClassInfo
             this.paramnames = paramnames;
         }
 
-        @OnThread(value = Tag.Any, ignoreParent = true)
         public void save(Properties p, String prefix)
         {
             p.put(prefix + ".target", target);
@@ -454,7 +446,6 @@ public final class ClassInfo
         return superclass;
     }
 
-    @OnThread(value = Tag.Any, ignoreParent = true)
     public String getName()
     {
         return name;
@@ -496,7 +487,6 @@ public final class ClassInfo
         return permits;
     }
 
-    @OnThread(value = Tag.Any, ignoreParent = true)
     public Properties getComments()
     {
         Properties props = new SortedProperties();
