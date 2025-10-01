@@ -212,7 +212,7 @@ public abstract class ClassRole
     @OnThread(Tag.FXPlatform)
     public List<ClassTargetOperation> getClassConstructorOperations(ClassTarget ct, Class<?> cl)
     {
-        View view = View.getView(cl);
+        View view = View.getView(cl, ct.getPackage().getProject());
 
         if (!java.lang.reflect.Modifier.isAbstract(cl.getModifiers())) {
             ViewFilter filter = new ViewFilter(StaticOrInstance.INSTANCE, ct.getPackage().getQualifiedName());
@@ -236,7 +236,7 @@ public abstract class ClassRole
     @OnThread(Tag.FXPlatform)
     public List<ClassTargetOperation> getClassStaticOperations(ClassTarget ct, Class<?> cl)
     {
-        View view = View.getView(cl);
+        View view = View.getView(cl, ct.getPackage().getProject());
 
         ViewFilter filter = new ViewFilter(StaticOrInstance.STATIC, ct.getPackage().getQualifiedName());
         MethodView[] allMethods = view.getAllMethods();

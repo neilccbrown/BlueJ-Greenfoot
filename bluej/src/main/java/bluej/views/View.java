@@ -30,6 +30,7 @@ import bluej.debugger.gentype.GenTypeDeclTpar;
 import bluej.parser.context.CommentEntry;
 import bluej.parser.context.CompilationUnitContext;
 import bluej.parser.context.CompilationUnitContextLoader;
+import bluej.pkgmgr.Project;
 import bluej.utility.JavaNames;
 import bluej.utility.JavaUtils;
 import threadchecker.OnThread;
@@ -47,7 +48,8 @@ import threadchecker.Tag;
 public class View
 {
     /** The class that this view is for **/
-    protected Class<?> cl;
+    protected final Class<?> cl;
+    protected final Project project;
 
     protected FieldView[] fields;
     protected FieldView[] allFields;
@@ -71,7 +73,7 @@ public class View
      * This is the only way to obtain a View object.
      * This method is thread-safe.
      */
-    public static View getView(Class<?> cl)
+    public static View getView(Class<?> cl, Project project)
     {
         if(cl == null)
             return null;
@@ -81,7 +83,7 @@ public class View
         synchronized (views) {
             View v = views.get(cl);
             if(v == null) {
-                v = new View(cl);
+                v = new View(cl, project);
                 views.put(cl, v);
             }
 
@@ -114,9 +116,10 @@ public class View
         }
     }
 
-    private View(Class<?> cl)
+    private View(Class<?> cl, Project project)
     {
         this.cl = cl;
+        this.project = project;
     }
 
     private ClassLoader getClassLoader()
@@ -156,7 +159,7 @@ public class View
 
     public View getSuper()
     {
-        return getView(cl.getSuperclass());
+        return getView(cl.getSuperclass(), this.project);
     }
 
     public View[] getInterfaces()
@@ -165,7 +168,7 @@ public class View
 
         View[] interfaceViews = new View[interfaces.length];
         for(int i = 0; i < interfaces.length; i++)
-            interfaceViews[i] =  getView(interfaces[i]);
+            interfaceViews[i] =  getView(interfaces[i], this.project);
 
         return interfaceViews;
     }

@@ -432,7 +432,7 @@ public class ObjectWrapper extends StackPane implements InvokeListener, NamedVal
         menu = new ContextMenu();
 
         // add the menu items to call the methods
-        createMethodMenuItems(menu.getItems(), cl, iType, this, pkg.getQualifiedName(), true);
+        createMethodMenuItems(menu.getItems(), pkg.getProject(), cl, iType, this, pkg.getQualifiedName(), true);
 
         // add inspect and remove options
         MenuItem item;
@@ -460,11 +460,11 @@ public class ObjectWrapper extends StackPane implements InvokeListener, NamedVal
      *            methods)
      * @param showObjectMethods Whether to show the submenu with methods from java.lang.Object
      */
-    public static void createMethodMenuItems(ObservableList<MenuItem> menu, Class<?> cl, InvokeListener il,
+    public static void createMethodMenuItems(ObservableList<MenuItem> menu, Project project, Class<?> cl, InvokeListener il,
                                              String currentPackageName, boolean showObjectMethods)
     {
         GenTypeClass gt = new GenTypeClass(new JavaReflective(cl));
-        createMethodMenuItems(menu, cl, gt, il, currentPackageName, showObjectMethods);
+        createMethodMenuItems(menu, project, cl, gt, il, currentPackageName, showObjectMethods);
     }
 
     /**
@@ -479,11 +479,11 @@ public class ObjectWrapper extends StackPane implements InvokeListener, NamedVal
      *            methods)
      * @param showObjectMethods Whether to show the submenu for methods inherited from java.lang.Object
      */
-    public static void createMethodMenuItems(ObservableList<MenuItem> menu, Class<?> cl, GenTypeClass gtype, InvokeListener il,
+    public static void createMethodMenuItems(ObservableList<MenuItem> menu, Project project, Class<?> cl, GenTypeClass gtype, InvokeListener il,
                                              String currentPackageName, boolean showObjectMethods)
     {
         if (cl != null) {
-            View view = View.getView(cl);
+            View view = View.getView(cl, project);
             Hashtable<String, String> methodsUsed = new Hashtable<>();
             List<Class<?>> classes = getClassHierarchy(cl);
 
@@ -513,7 +513,7 @@ public class ObjectWrapper extends StackPane implements InvokeListener, NamedVal
             // create submenus for superclasses
             for(int i = 1; i < classes.size(); i++ ) {
                 Class<?> currentClass = classes.get(i);
-                view = View.getView(currentClass);
+                view = View.getView(currentClass, project);
 
                 // Determine visibility of package private / protected members
                 filter = new ViewFilter(StaticOrInstance.INSTANCE, currentPackageName);
@@ -532,7 +532,7 @@ public class ObjectWrapper extends StackPane implements InvokeListener, NamedVal
             // Create submenus for interfaces which have default methods:
             for (Class<?> iface : getInterfacesWithDefaultMethods(cl))
             {
-                view = View.getView(iface);
+                view = View.getView(iface, project);
                 declaredMethods = view.getDeclaredMethods();
                 Menu subMenu = new Menu(inheritedFrom + " "
                         + JavaNames.stripPrefix(iface.getName()));

@@ -73,7 +73,7 @@ public final class FieldView extends MemberView
     public View getType()
     {
         if(type == null)
-            type = View.getView(field.getType());
+            type = View.getView(field.getType(), this.getDeclaringView().project);
 
         return type;
     }
