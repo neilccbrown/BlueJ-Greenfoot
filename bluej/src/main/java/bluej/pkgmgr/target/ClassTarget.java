@@ -124,7 +124,7 @@ import java.lang.ClassNotFoundException;
  * @author Bruce Quig
  */
 @OnThread(Tag.FXPlatform)
-public class ClassTarget extends DependentTarget
+public class ClassTarget extends CompilableTarget
     implements InvokeListener
 {
     final static int MIN_WIDTH = 60;
