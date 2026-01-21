@@ -23,18 +23,137 @@ package bluej.pkgmgr.target;
 
 import bluej.collect.DiagnosticWithShown;
 import bluej.collect.StrideEditReason;
+import bluej.editor.Editor;
 import bluej.editor.stride.FrameCatalogue;
+import bluej.extensions2.SourceType;
+import bluej.parser.symtab.ClassInfo;
 import bluej.pkgmgr.Package;
 import bluej.stride.generic.Frame;
+import bluej.utility.javafx.AbstractOperation;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class KotlinTarget extends CompilableTarget
+public class KotlinTarget extends CompilableTarget
 {
+    private final String baseName;
+
+    /**
+     * 
+     * @param pkg The Package this target belongs to
+     * @param identifierName The file name without the .kt extension
+     */
     public KotlinTarget(Package pkg, String identifierName)
     {
         super(pkg, identifierName, "Kotlin");
+        this.baseName = identifierName;
+    }
+
+    @Override
+    protected File getSourceFile()
+    {
+        if (null == getPackage())
+        {
+            return null;
+        }
+        else
+        {
+            return new File(getPackage().getPath(), baseName + ".kt");
+        }
+    }
+
+    /**
+     * Compilation of the class represented by this target has begun.
+     *
+     * @param compilationSequence   compilation sequence identifier which can be used to associate
+     *                              related compilation events.
+     */
+    public void markCompiling(int compilationSequence)
+    {
+        // The results of compilation will be invalid if the editor contents have not been saved:
+        compilationInvalid = (editor != null) ? editor.isModified() : false;
+
+        if (getState() == State.HAS_ERROR)
+        {
+            setState(State.NEEDS_COMPILE);
+        }
+
+        if (editor != null)
+        {
+            if (editor.compileStarted(compilationSequence))
+            {
+                setState(State.HAS_ERROR);
+            }
+        }
+    }
+
+    /**
+     * Re-initialize the breakpoints which have been set in this
+     * class.
+     */
+    public void reInitBreakpoints()
+    {
+        if (editor != null && isCompiled())
+        {
+            editor.reInitBreakpoints();
+        }
+    }
+
+    @Override
+    public void reload()
+    {
+        if (editor != null) {
+            editor.reloadFile();
+        }
+        else {
+            analyseSource();
+        }
+    }
+
+    @Override
+    public boolean hasSourceCode()
+    {
+        // Kotlin targets only exist if there is source code, otherwise they are a class target:
+        return true;
+    }
+
+    @Override
+    public List<ClassInfo> analyseSource()
+    {
+        // TODO Implement this (see ClassTarget for what it should do)
+        return List.of();
+    }
+
+    @Override
+    public Editor getEditor()
+    {
+        // TODO Implement this (see ClassTarget for what it should do)
+        return null;
+    }
+
+    @Override
+    public void remove()
+    {
+        // TODO Implement this (see ClassTarget for what it should do)
+    }
+
+    @Override
+    public List<? extends AbstractOperation<Target>> getContextOperations()
+    {
+        // TODO Implement this (see ClassTarget for what it should do)
+        return List.of();
+    }
+
+    public void showingInterface(boolean showing)
+    {
+        // TODO Implement this if Kotlin supports showing the interface (Javadoc) view.
+    }
+
+    @Override
+    public void generateDoc()
+    {
+        // TODO Implement this if Kotlin supports showing the interface (Javadoc) view.
     }
 
     // These are all Blackbox related recording methods that we don't need to implement in Kotlin:

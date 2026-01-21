@@ -295,7 +295,7 @@ public class DataCollectorImpl
      */
     public static void packageOpened(Package pkg)
     {
-        addCompleteFiles(pkg, EventName.PACKAGE_OPENING, pkg.getClassTargets(), null);
+        addCompleteFiles(pkg, EventName.PACKAGE_OPENING, pkg.getTargets(ClassTarget.class), null);
     }
 
     /**
@@ -406,7 +406,7 @@ public class DataCollectorImpl
      */
     public static void packageClosed(Package pkg)
     {
-        addCompleteFiles(pkg, EventName.PACKAGE_CLOSING, pkg.getClassTargets(), mpe -> {
+        addCompleteFiles(pkg, EventName.PACKAGE_CLOSING, pkg.getTargets(ClassTarget.class), mpe -> {
             mpe.addPart("event[has_hash]", CollectUtility.toBody(true));
         });
     }

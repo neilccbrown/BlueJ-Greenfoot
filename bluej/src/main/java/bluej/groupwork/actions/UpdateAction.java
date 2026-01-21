@@ -44,10 +44,7 @@ import bluej.pkgmgr.BlueJPackageFile;
 import bluej.pkgmgr.Package;
 import bluej.pkgmgr.PkgMgrFrame;
 import bluej.pkgmgr.Project;
-import bluej.pkgmgr.target.ClassTarget;
-import bluej.pkgmgr.target.PackageTarget;
-import bluej.pkgmgr.target.ReadmeTarget;
-import bluej.pkgmgr.target.Target;
+import bluej.pkgmgr.target.*;
 import bluej.utility.Debug;
 import bluej.utility.DialogManager;
 import bluej.utility.FXWorker;
@@ -228,9 +225,9 @@ public class UpdateAction extends TeamAction
                     return;
                 }
 
-                if (t instanceof ClassTarget)
+                if (t instanceof CompilableTarget ct)
                 {
-                    ((ClassTarget) t).reload();
+                    ct.reload();
                 }
             }
         }
@@ -274,12 +271,11 @@ public class UpdateAction extends TeamAction
                     return;
                 }
                 Target t = pkg.getTarget(name);
-                if (!(t instanceof ClassTarget))
+                if (!(t instanceof ClassTarget ct))
                 {
                     return;
                 }
 
-                ClassTarget ct = (ClassTarget) t;
                 if (ct.hasSourceCode() && !fileName.endsWith(".java"))
                 {
                     ct.markModified();

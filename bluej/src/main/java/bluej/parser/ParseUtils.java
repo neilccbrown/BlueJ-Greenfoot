@@ -37,6 +37,7 @@ import bluej.parser.nodes.ParsedNode;
 import bluej.parser.nodes.VariableDeclaration;
 import bluej.parser.symtab.ClassInfo;
 import bluej.pkgmgr.Package;
+import bluej.pkgmgr.target.ClassTarget;
 import bluej.pkgmgr.target.role.Kind;
 import bluej.stride.framedjava.frames.LocalCompletion;
 import bluej.utility.Debug;
@@ -105,7 +106,7 @@ public class ParseUtils
         //We will check for each first level classes if they contain any subclasses, and add them later.
         List<AssistContentThreadSafe> nestedTypes = new ArrayList<>();
 
-        List<AssistContentThreadSafe> resList = pkg.getClassTargets()
+        List<AssistContentThreadSafe> resList = pkg.getTargets(ClassTarget.class)
             .stream()
             .filter(ct ->
             {

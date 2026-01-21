@@ -25,7 +25,7 @@ import java.io.File;
 
 import bluej.pkgmgr.PkgMgrFrame;
 import bluej.pkgmgr.Project;
-import bluej.pkgmgr.target.ClassTarget;
+import bluej.pkgmgr.target.EditableTarget;
 import bluej.pkgmgr.target.Target;
 import bluej.utility.Debug;
 import javafx.stage.Stage;
@@ -90,9 +90,9 @@ public class BlueJGuiHandler implements GuiHandler
                 for (Project proj : Project.getProjects())
                 {
                     Target tgt = proj.getTarget(targetName);
-                    if (tgt != null && tgt instanceof ClassTarget)
+                    if (tgt != null && tgt instanceof EditableTarget editableTarget)
                     {
-                        ((ClassTarget)tgt).open();
+                        editableTarget.open();
                         foundTarget = true;
                     }
                 }

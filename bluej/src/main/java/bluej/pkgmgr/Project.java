@@ -56,6 +56,8 @@ import bluej.parser.context.CompilationUnitContextLoader;
 import bluej.parser.entity.EntityResolver;
 import bluej.parser.symtab.ClassInfo;
 import bluej.pkgmgr.target.ClassTarget;
+import bluej.pkgmgr.target.CompilableTarget;
+import bluej.pkgmgr.target.EditableTarget;
 import bluej.pkgmgr.target.Target;
 import bluej.prefmgr.PrefMgr;
 import bluej.terminal.Terminal;
@@ -209,7 +211,7 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
     private Set<Package> scheduledPkgs = new HashSet<>();
     /** Targets scheduled for autocompilation */
     @OnThread(Tag.FXPlatform)
-    private Set<ClassTarget> scheduledTargets = new HashSet<>();
+    private Set<CompilableTarget> scheduledTargets = new HashSet<>();
 
     /**
      * The threads currently running in the debugger for this project.  We need
@@ -1623,9 +1625,8 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
         List<Target> selectedTargets = getSelectedTargets();
         for (Iterator<Target> i = selectedTargets.iterator(); i.hasNext(); ){
             Target target = i.next();
-            if (target instanceof ClassTarget){
-                ClassTarget classTarget = (ClassTarget) target;
-                Editor editor = classTarget.getEditor();
+            if (target instanceof EditableTarget t){
+                Editor editor = t.getEditor();
                 if (editor != null) {
                     editor.setEditorVisible(true, false);
                 }
@@ -2419,7 +2420,7 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
     }
 
     @OnThread(Tag.Any)
-    public void scheduleCompilation(boolean immediate, CompileReason reason, CompileType type, ClassTarget target)
+    public void scheduleCompilation(boolean immediate, CompileReason reason, CompileType type, CompilableTarget target)
     {
         // We must use invokeLater, even if already on event queue,
         // to make sure all actions are resolved (e.g. auto-indent post-newline)
@@ -2438,7 +2439,7 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
      * Note: only one of pkg or target should be non-null.                  
      */
     @OnThread(Tag.FXPlatform)
-    private void scheduleCompilation(boolean immediate, CompileReason reason, CompileType type, Package pkg, ClassTarget target)
+    private void scheduleCompilation(boolean immediate, CompileReason reason, CompileType type, Package pkg, CompilableTarget target)
     {
         if (immediate)
         {
@@ -2478,7 +2479,7 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
             {
                 EventHandler<ActionEvent> listener = e -> {
                     Set<Package> pkgsToCompile;
-                    Set<ClassTarget> targetsToCompile;
+                    Set<CompilableTarget> targetsToCompile;
 
                     pkgsToCompile = scheduledPkgs;
                     scheduledPkgs = new HashSet<>();
@@ -2489,7 +2490,7 @@ public class Project implements DebuggerListener, DebuggerThreadListener, Inspec
                     {
                         p.compileOnceIdle(null, latestCompileReason, latestCompileType);
                     }
-                    for (ClassTarget t : targetsToCompile)
+                    for (CompilableTarget t : targetsToCompile)
                     {
                         t.getPackage().compileOnceIdle(t, latestCompileReason, latestCompileType);
                     }
