@@ -215,7 +215,7 @@ public class BPackage
         packageId.getBluejProject();
         Package bluejPkg = packageId.getBluejPackage();
 
-        ArrayList<ClassTarget> classTargets = bluejPkg.getClassTargets();
+        ArrayList<ClassTarget> classTargets = bluejPkg.getTargets(ClassTarget.class);
 
         BClass[] classes = new BClass[classTargets.size()];
         for (int index=0; index<classTargets.size(); index++) {

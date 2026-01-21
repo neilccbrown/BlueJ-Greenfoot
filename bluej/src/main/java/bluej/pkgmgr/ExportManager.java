@@ -43,6 +43,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import bluej.pkgmgr.target.ClassTarget;
+import bluej.pkgmgr.target.CompilableTarget;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Window;
 
@@ -89,7 +90,7 @@ final class ExportManager
         ExportDialog.ProjectInfo projectInfo = new ExportDialog.ProjectInfo(proj);
 
         boolean hasStride = proj.getPackageNames().stream().map(proj::getPackage)
-            .flatMap(p -> p.getClassTargets().stream())
+            .flatMap(p -> p.getTargets(ClassTarget.class).stream())
             .anyMatch(ct -> ct.getSourceType() == SourceType.Stride);
 
         Window parent = frame.getWindow();
@@ -106,7 +107,7 @@ final class ExportManager
         {
             for (Package p : proj.getProjectPackages())
             {
-                for (ClassTarget c : p.getClassTargets())
+                for (CompilableTarget c : p.getTargets(CompilableTarget.class))
                 {
                     if (!c.isCompiled())
                     {

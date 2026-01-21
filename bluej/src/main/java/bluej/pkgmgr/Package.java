@@ -429,7 +429,7 @@ public final class Package
         for (Iterator<Target> e = targets.iterator(); e.hasNext();) {
             Target target = e.next();
 
-            if (target instanceof ClassTarget)
+            if (target instanceof EditableTarget)
                 return null;
 
             if ((target instanceof PackageTarget) && !(target instanceof ParentPackageTarget)) {
@@ -1175,8 +1175,7 @@ public final class Package
 
         for (Target target : targetsCopy)
         {
-            if (target instanceof ClassTarget) {
-                ClassTarget ct = (ClassTarget) target;
+            if (target instanceof CompilableTarget ct) {
                 ct.analyseSource();
             }
         }
@@ -1184,9 +1183,8 @@ public final class Package
         //Update class roles, and their state
         for (Target target : targetsCopy)
         {
-            if (target instanceof ClassTarget) {
-                ClassTarget ct = (ClassTarget) target;
-
+            if (target instanceof ClassTarget ct)
+            {
                 Class<?> cl = loadClass(ct.getQualifiedName());
                 if (cl != null) {
                     ct.determineRole(cl);
@@ -1436,9 +1434,7 @@ public final class Package
         for (Iterator<Target> it = targets.iterator(); it.hasNext();) {
             Target target = it.next();
 
-            if (target instanceof ClassTarget) {
-                ClassTarget ct = (ClassTarget) target;
-
+            if (target instanceof ClassTarget ct) {
                 if (ct.isUnitTest())
                     l.add(ct);
             }
@@ -1464,17 +1460,17 @@ public final class Package
      */
     public void compile(FXCompileObserver compObserver, CompileReason reason, CompileType type)
     {
-        Set<ClassTarget> toCompile = new HashSet<ClassTarget>();
+        Set<CompilableTarget> toCompile = new HashSet<>();
 
         try
         {
-            List<ClassTarget> classTargets;
+            List<CompilableTarget> classTargets;
             // build the list of targets that need to be compiled
             synchronized (this)
             {
-                classTargets = getClassTargets();
+                classTargets = getTargets(CompilableTarget.class);
             }
-            for (ClassTarget ct : classTargets)
+            for (CompilableTarget ct : classTargets)
             {
                 if (!ct.isCompiled() && !ct.isQueued())
                 {
@@ -1507,7 +1503,7 @@ public final class Package
         catch (IOException ioe) {
             // Abort compile
             Debug.log("Error saving class before compile: " + ioe.getLocalizedMessage());
-            for (ClassTarget ct : toCompile) {
+            for (CompilableTarget ct : toCompile) {
                 ct.setQueued(false);
             }
             if (compObserver != null) {
@@ -1560,17 +1556,17 @@ public final class Package
     }
 
     /**
-     * Compile a single class.
+     * Compile a single target.
      */
-    public void compile(ClassTarget ct, CompileReason reason, CompileType type)
+    public void compile(CompilableTarget ct, CompileReason reason, CompileType type)
     {
         compile(ct, false, null, reason, type);
     }
 
     /**
-     * Compile a single class.
+     * Compile a single target.
      */
-    public void compile(ClassTarget ct, boolean forceQuiet, FXCompileObserver compObserver, CompileReason reason, CompileType type)
+    public void compile(CompilableTarget ct, boolean forceQuiet, FXCompileObserver compObserver, CompileReason reason, CompileType type)
     {
         if (!checkCompile()) {
             return;
@@ -1639,22 +1635,11 @@ public final class Package
         // Saving a class target can change its name; we need to copy the set of targets
         // first, and iterate through the copied list, to avoid "concurrent" modification
         // problems.
-        List<ClassTarget> compileTargets = new ArrayList<ClassTarget>();
-        synchronized (this)
-        {
-            for (Iterator<Target> it = targets.iterator(); it.hasNext(); )
-            {
-                Target target = it.next();
-                if (target instanceof ClassTarget)
-                {
-                    compileTargets.add((ClassTarget)target);
-                }
-            }
-        }
+        List<CompilableTarget> compileTargets = getTargets(CompilableTarget.class);
 
         try {
-            for (Iterator<ClassTarget> i = compileTargets.iterator(); i.hasNext(); ) {
-                ClassTarget ct = i.next();
+            for (Iterator<CompilableTarget> i = compileTargets.iterator(); i.hasNext(); ) {
+                CompilableTarget ct = i.next();
                 // we don't want to try and compile if it is a class target without src
                 if (ct.hasSourceCode()) {
                     ct.ensureSaved();
@@ -1686,13 +1671,9 @@ public final class Package
     {
         // Because we call editor.save() on targets, which can result in
         // a renamed class target, we need to iterate through a copy of
-        // the collection - hence the new ArrayList call here:
-        List<ClassTarget> classTargets;
-        synchronized (this)
-        {
-            classTargets = new ArrayList<>(getClassTargets());
-        }
-        for (ClassTarget ct : classTargets) {
+        // the collection:
+        List<CompilableTarget> compilableTargets = getTargets(CompilableTarget.class);
+        for (CompilableTarget ct : compilableTargets) {
             Editor ed = ct.getEditor();
             // Editor can be null eg. class file and no src file
             if(ed != null) {
@@ -1704,23 +1685,23 @@ public final class Package
     /**
      * Compile a class together with its dependencies, as necessary.
      */
-    private void searchCompile(ClassTarget t, FXCompileObserver observer, CompileReason reason, CompileType type)
+    private void searchCompile(CompilableTarget t, FXCompileObserver observer, CompileReason reason, CompileType type)
     {
         if (t.isQueued()) {
             return;
         }
 
-        Set<ClassTarget> toCompile = new HashSet<ClassTarget>();
+        Set<CompilableTarget> toCompile = new HashSet<>();
 
         try {
-            List<ClassTarget> queue = new LinkedList<ClassTarget>();
+            List<CompilableTarget> queue = new LinkedList<>();
             toCompile.add(t);
             t.ensureSaved();
             queue.add(t);
             t.setQueued(true);
 
             while (! queue.isEmpty()) {
-                ClassTarget head = queue.remove(0);
+                CompilableTarget head = queue.removeFirst();
 
                 for (DependentTarget dependency : head.dependencies())
                 {
@@ -1740,7 +1721,7 @@ public final class Package
         catch (IOException ioe) {
             // Failed to save; abort the compile
             Debug.log("Failed to save source before compile; " + ioe.getLocalizedMessage());
-            for (ClassTarget ct : toCompile) {
+            for (CompilableTarget ct : toCompile) {
                 ct.setQueued(false);
             }
         }
@@ -1750,14 +1731,14 @@ public final class Package
      * Compile every Target in 'targetList'. Every compilation goes through this method.
      * All targets in the list should have been saved beforehand.
      */
-    private void doCompile(Collection<ClassTarget> targetList, FXCompileObserver edtObserver, CompileReason reason, CompileType type)
+    private void doCompile(Collection<CompilableTarget> targetList, FXCompileObserver edtObserver, CompileReason reason, CompileType type)
     {
         CompileObserver observer = new EventqueueCompileObserverAdapter(new DataCollectionCompileObserverWrapper(project, edtObserver));
         if (targetList.isEmpty()) {
             return;
         }
 
-        List<CompileInputFile> srcFiles = Utility.mapList(targetList, ClassTarget::getCompileInputFile);
+        List<CompileInputFile> srcFiles = targetList.stream().flatMap(t -> t instanceof ClassTarget ct ? Stream.of(ct.getCompileInputFile()) : Stream.empty()).toList();
         if (srcFiles.size() > 0 && srcFiles.stream().allMatch(CompileInputFile::isValid))
         {
             JobQueue.getJobQueue().addJob(srcFiles.toArray(new CompileInputFile[0]), observer, project.getClassLoader(), project.getProjectDir(),
@@ -1799,7 +1780,7 @@ public final class Package
      * Compile the package, but only when the debugger is in an idle state.
      * @param specificTarget The single classtarget to compile; if null then will compile whole package.
      */
-    public void compileOnceIdle(ClassTarget specificTarget, CompileReason reason, CompileType type)
+    public void compileOnceIdle(CompilableTarget specificTarget, CompileReason reason, CompileType type)
     {
         if (! waitingForIdleToCompile) {
             if (isDebuggerIdle())
@@ -1877,12 +1858,7 @@ public final class Package
      */
     public void reInitBreakpoints()
     {
-        List<ClassTarget> classTargets;
-        synchronized (this)
-        {
-            classTargets = getClassTargets();
-        }
-        for (ClassTarget target : classTargets)
+        for (CompilableTarget target : getTargets(CompilableTarget.class))
         {
             target.reInitBreakpoints();
         }
@@ -1893,12 +1869,7 @@ public final class Package
      */
     public void removeStepMarks()
     {
-        List<ClassTarget> classTargets;
-        synchronized (this)
-        {
-            classTargets = new ArrayList<>(getClassTargets());
-        }
-        for (ClassTarget target : classTargets)
+        for (CompilableTarget target : getTargets(CompilableTarget.class))
         {
             target.removeStepMark();
         }
@@ -2077,15 +2048,15 @@ public final class Package
      * @return a not null but possibly empty array list of ClassTargets for this package.
      */
     @OnThread(Tag.Any)
-    public synchronized final ArrayList<ClassTarget> getClassTargets()
+    public synchronized final <T extends Target> ArrayList<T> getTargets(Class<T> targetType)
     {
-        ArrayList<ClassTarget> risul = new ArrayList<ClassTarget>();
+        ArrayList<T> risul = new ArrayList<>();
 
         for (Iterator<Target> it = targets.iterator(); it.hasNext();) {
             Target target = it.next();
 
-            if (target instanceof ClassTarget) {
-                risul.add((ClassTarget) target);
+            if (targetType.isInstance(target)) {
+                risul.add(targetType.cast(target));
             }
         }
         return risul;
@@ -2096,7 +2067,7 @@ public final class Package
      */
     public synchronized List<String> getAllClassnames()
     {
-        return Utility.mapList(getClassTargets(), ClassTarget::getBaseName);
+        return Utility.mapList(getTargets(ClassTarget.class), ClassTarget::getBaseName);
     }
 
     /**
@@ -2351,11 +2322,9 @@ public final class Package
         }
 
         Target target = getTargetForSource(fileName);
-        if (! (target instanceof ClassTarget)) {
+        if (! (target instanceof CompilableTarget t)) {
             return ErrorShown.EDITOR_NOT_FOUND;
         }
-
-        ClassTarget t = (ClassTarget) target;
 
         Editor targetEditor = t.getEditor();
         if (targetEditor != null) {
@@ -2596,8 +2565,8 @@ public final class Package
                 if (fullName != null) {
                     Target t = getTarget(JavaNames.getBase(fullName));
 
-                    if (t instanceof ClassTarget) {
-                        ClassTarget ct = (ClassTarget) t;
+                    if (t instanceof CompilableTarget ct)
+                    {
                         ct.markCompiling(compilationSequence);
                     }
                 }
@@ -2693,7 +2662,7 @@ public final class Package
         public void endCompile(CompileInputFile[] sources, boolean successful, CompileType type, int compilationSequence)
         {
             List<ClassTarget> targetsToAnalyse = new ArrayList<>();
-            List<ClassTarget> readyToCompileList = new ArrayList<>();
+            List<CompilableTarget> readyToCompileList = new ArrayList<>();
             for (int i = 0; i < sources.length; i++) {
                 String filename = sources[i].getJavaCompileInputFile().getPath();
 
@@ -2924,7 +2893,7 @@ public final class Package
     {
         // Our heuristic is: if the package contains any Stride files, the default is Stride,
         // otherwise it's Java
-        if (getClassTargets().stream().anyMatch(c -> c.getSourceType() == SourceType.Stride))
+        if (getTargets(ClassTarget.class).stream().anyMatch(c -> c.getSourceType() == SourceType.Stride))
             return SourceType.Stride;
         else
             return SourceType.Java;

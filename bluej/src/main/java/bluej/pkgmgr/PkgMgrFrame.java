@@ -52,12 +52,7 @@ import bluej.groupwork.actions.*;
 import bluej.groupwork.ui.ActivityIndicator;
 import bluej.pkgmgr.actions.*;
 import bluej.pkgmgr.print.PackagePrintManager;
-import bluej.pkgmgr.target.CSSTarget;
-import bluej.pkgmgr.target.ClassTarget;
-import bluej.pkgmgr.target.DependentTarget;
-import bluej.pkgmgr.target.PackageTarget;
-import bluej.pkgmgr.target.Target;
-import bluej.pkgmgr.target.TextFileTarget;
+import bluej.pkgmgr.target.*;
 import bluej.pkgmgr.target.role.UnitTestClassRole;
 import bluej.prefmgr.PrefMgr;
 import bluej.prefmgr.PrefMgrDialog;
@@ -2577,8 +2572,7 @@ public class PkgMgrFrame
         List<Target> targets = thePkg.getSelectedTargets();
         if (targets.size() > 0) {
             for (Target target : targets) {
-                if (target instanceof ClassTarget) {
-                    ClassTarget t = (ClassTarget) target;
+                if (target instanceof CompilableTarget t) {
                     if (t.hasSourceCode())
                         thePkg.compile(t, CompileReason.USER, CompileType.EXPLICIT_USER_COMPILE);
                 }
@@ -2854,7 +2848,7 @@ public class PkgMgrFrame
                     return;
 
                 thePkg
-                    .getClassTargets()
+                    .getTargets(ClassTarget.class)
                     .stream()
                     .filter(ct -> ct.getBaseName().equals(details.className()))
                     .findFirst()
@@ -3478,9 +3472,9 @@ public class PkgMgrFrame
         {
             if (pkg.get() != null)
             {
-                ArrayList<ClassTarget> classTargets = pkg.get().getClassTargets();
+                ArrayList<CompilableTarget> classTargets = pkg.get().getTargets(CompilableTarget.class);
                 numClassTargets = classTargets.size();
-                numClassTargetsWithSource = (int) classTargets.stream().filter(ClassTarget::hasSourceCode).count();
+                numClassTargetsWithSource = (int) classTargets.stream().filter(CompilableTarget::hasSourceCode).count();
                 numPackagesNested = pkg.get().getChildren(true).size();
             }
             else

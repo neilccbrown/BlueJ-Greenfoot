@@ -29,7 +29,6 @@ import bluej.collect.StrideEditReason;
 import bluej.compiler.CompileInputFile;
 import bluej.compiler.CompileReason;
 import bluej.compiler.CompileType;
-import bluej.compiler.Diagnostic;
 import bluej.debugger.*;
 import bluej.debugger.gentype.Reflective;
 import bluej.debugmgr.objectbench.InvokeListener;
@@ -44,8 +43,6 @@ import bluej.extmgr.ExtensionMenu;
 import bluej.extmgr.ExtensionsManager;
 import bluej.extmgr.ExtensionsMenuManager;
 import bluej.parser.ParseFailure;
-import bluej.parser.context.CompilationUnitContext;
-import bluej.parser.context.CompilationUnitContextLoader;
 import bluej.parser.entity.EntityResolver;
 import bluej.parser.entity.PackageResolver;
 import bluej.parser.entity.ParsedReflective;
@@ -55,7 +52,6 @@ import bluej.parser.symtab.ClassInfo;
 import bluej.parser.symtab.Selection;
 import bluej.pkgmgr.Package;
 import bluej.pkgmgr.*;
-import bluej.pkgmgr.dependency.Dependency;
 import bluej.pkgmgr.dependency.ExtendsDependency;
 import bluej.pkgmgr.dependency.ImplementsDependency;
 import bluej.pkgmgr.dependency.PermitsDependency;
@@ -124,7 +120,7 @@ import java.lang.ClassNotFoundException;
  * @author Bruce Quig
  */
 @OnThread(Tag.FXPlatform)
-public class ClassTarget extends DependentTarget
+public class ClassTarget extends CompilableTarget
     implements InvokeListener
 {
     final static int MIN_WIDTH = 60;
@@ -174,17 +170,12 @@ public class ClassTarget extends DependentTarget
     // flag to prevent recursive calls to analyseDependancies()
     private boolean analysing = false;
 
-    // Whether the current compilation is invalid due to edits since compilation began
-    private boolean compilationInvalid = false;
-
     private SourceType sourceAvailable;
     // Part of keeping track of number of editors opened, for Greenfoot phone home:
     private boolean hasBeenOpened = false;
 
     private String typeParameters = "";
 
-    //properties map to store values used in the editor from the props (if necessary)
-    private Map<String, String> properties = new HashMap<String, String>();
     // Keep track of whether the editor is open or not; we get a lot of
     // potential open events, and don't want to keep recording ourselves as re-opening
     private boolean recordedAsOpen = false;
@@ -1461,8 +1452,8 @@ public class ClassTarget extends DependentTarget
     @Override
     public void saveEvent(Editor editor)
     {
-        ClassInfo info = analyseSource();
-        if (info != null) {
+        List<ClassInfo> infos = analyseSource();
+        for (ClassInfo info : infos) {
             updateTargetFile(info);
             try {
                 updateMetadata(info);
@@ -1532,46 +1523,6 @@ public class ClassTarget extends DependentTarget
             {
                 breakpointToggleEvent(line, true);
             }
-        }
-    }
-
-    /**
-     * Remove the step mark in this case
-     * (the mark in the editor that shows where execution is)
-     */
-    public void removeStepMark()
-    {
-        if (editor != null) {
-            editor.removeStepMark();
-        }
-    }
-
-    /**
-     * Gets the compiled attribute of the ClassTarget object
-     * 
-     * @return The compiled value
-     */
-    public boolean isCompiled()
-    {
-        return getState() == State.COMPILED;
-    }
-
-    @Override
-    @OnThread(Tag.FXPlatform)
-    public void scheduleCompilation(boolean immediate, CompileReason reason, CompileType type)
-    {
-        if (Config.isGreenfoot() && type == CompileType.EXPLICIT_USER_COMPILE)
-        {
-            // We compile the package rather than just the class for explicit compiles in
-            // Greenfoot, but mark this target as modified first so that we do also compile
-            // this class even if we wouldn't otherwise (and can report the result to the
-            // editor, which is expecting to receive it):
-            markModified();
-            getPackage().getProject().scheduleCompilation(immediate, reason, type, getPackage());
-        }
-        else
-        {
-            getPackage().getProject().scheduleCompilation(immediate, reason, type, this);
         }
     }
 
@@ -1742,10 +1693,10 @@ public class ClassTarget extends DependentTarget
      * before. All classes must be present in the package or dependency information
      * will be generated incorrectly during parsing.
      */
-    public ClassInfo analyseSource()
+    public List<ClassInfo> analyseSource()
     {
         if (analysing) {
-            return null;
+            return Collections.emptyList();
         }
 
         analysing = true;
@@ -1764,7 +1715,7 @@ public class ClassTarget extends DependentTarget
         // getPackage().repaint();
 
         analysing = false;
-        return info;
+        return List.of(info);
     }
 
     /**
@@ -2278,21 +2229,6 @@ public class ClassTarget extends DependentTarget
     }
 
     /**
-     * Process a double click on this target. That is: open its editor.
-     *
-     * @param  openInNewWindow if this is true, the editor opens in a new window
-     */
-    @Override
-    public void doubleClick(boolean openInNewWindow)
-    {
-        Editor editor = getEditor();
-        if(editor == null)
-        {
-            getPackage().showError("error-open-source");
-        }
-        editor.setEditorVisible(true, openInNewWindow);
-    }
-    /**
      * Set the size of this target.
      * 
      * @param width The new size value
@@ -2579,24 +2515,6 @@ public class ClassTarget extends DependentTarget
         this.isNaviviewExpanded = Optional.of(isNaviviewExpanded);
     }
 
-    /**
-     * Retrieves a property from the editor
-     */
-    @Override
-    public String getProperty(String key)
-    {
-        return properties.get(key);
-    }
-
-    /**
-     * Sets a property for the editor
-     */
-    @Override
-    public void setProperty(String key, String value)
-    {
-        properties.put(key, value);
-    }
-
     @Override
     public void recordJavaEdit(String latest, boolean includeOneLineEdits)
     {
@@ -2641,36 +2559,6 @@ public class ClassTarget extends DependentTarget
     public CompileInputFile getCompileInputFile()
     {
         return new CompileInputFile(getJavaSourceFile(), getSourceFile());
-    }
-
-    /**
-     * Display a compilation diagnostic (error message), if possible and appropriate. The editor
-     * decides if it is appropriate to display the error and may have a policy where eg it only
-     * shows a limited number of errors.
-     * 
-     * @param diagnostic   the compiler-generated diagnostic
-     * @param errorIndex   the index of the error in this batch (first error is 0)
-     * @param compileType  the type of compilation leading to the error
-     * @return    true if the diagnostic was displayed to the user
-     */
-    public boolean showDiagnostic(Diagnostic diagnostic, int errorIndex, CompileType compileType)
-    {
-        // If an edit has been made since the compilation started, we don't want to display the
-        // error since it may no longer be present, and if it is it will be shown by a later
-        // compilation anyway:
-        if (compilationInvalid)
-        {
-            return false;
-        }
-
-        Editor ed = getEditor();
-        if (ed == null)
-        {
-            return false;
-        }
-
-        setState(State.HAS_ERROR);
-        return ed.displayDiagnostic(diagnostic, errorIndex, compileType);
     }
 
     /**

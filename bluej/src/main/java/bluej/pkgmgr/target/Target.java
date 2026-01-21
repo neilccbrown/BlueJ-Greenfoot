@@ -112,9 +112,7 @@ public abstract class Target
     // Is the current node selected?
     @OnThread(Tag.Any)
     protected boolean selected;
-    // Is the current node queued for compilation?
-    protected boolean queued;
-
+    
     // The graphical item in the class diagram
     @OnThread(Tag.FXPlatform)
     protected BorderPane pane = JavaFXUtil.initFX(BorderPane::new);
@@ -642,16 +640,6 @@ public abstract class Target
     public int getHeight()
     {
         return (int)pane.getPrefHeight();
-    }
-
-    public boolean isQueued()
-    {
-        return queued;
-    }
-
-    public void setQueued(boolean queued)
-    {
-        this.queued = queued;
     }
 
     @OnThread(Tag.FX)
