@@ -28,7 +28,10 @@ import bluej.compiler.CompileReason;
 import bluej.compiler.CompileType;
 import bluej.compiler.Diagnostic;
 import bluej.compiler.DiagnosticMessage;
+import bluej.debugger.DebuggerField;
+import bluej.debugger.DebuggerObject;
 import bluej.debugger.DebuggerThread;
+import bluej.debugger.VarDisplayInfo;
 import bluej.editor.Editor;
 import bluej.editor.EditorWatcher;
 import bluej.editor.TextEditor;
@@ -62,7 +65,11 @@ import bluej.stride.framedjava.elements.TopLevelCodeElement;
 import bluej.stride.framedjava.errors.DirectSlotError;
 import bluej.stride.framedjava.errors.SyntaxCodeError;
 import bluej.stride.framedjava.frames.DebugInfo;
+import bluej.stride.framedjava.frames.DebugVarInfo;
+import bluej.stride.framedjava.frames.PrimitiveDebugVarInfo;
+import bluej.stride.framedjava.frames.ReferenceDebugVarInfo;
 import bluej.stride.framedjava.frames.LocalCompletion;
+import bluej.stride.framedjava.frames.LocalDebugVarInfo;
 import bluej.stride.framedjava.slots.ExpressionSlot;
 import bluej.parser.AssistContentThreadSafe;
 import bluej.utility.Debug;
@@ -70,6 +77,7 @@ import bluej.utility.Utility;
 import bluej.utility.javafx.FXPlatformConsumer;
 import bluej.utility.javafx.FXPlatformRunnable;
 import bluej.utility.javafx.FXRunnable;
+import bluej.utility.javafx.FXPlatformSupplier;
 import bluej.utility.javafx.JavaFXUtil;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
@@ -84,6 +92,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -249,6 +258,7 @@ public class FrameEditor implements Editor
             }
         });
         debugInfo.bindVarVisible(panel.debugVarVisibleProperty());
+        debugInfo.bindLocalsVisible(panel.debugLocalsVisibleProperty());
     }
 
     // Editor methods:
@@ -866,18 +876,25 @@ public class FrameEditor implements Editor
     public boolean setStepMark(int lineNumber, String message, boolean isBreak,
             DebuggerThread thread)
     {
-        // Disable Stride debugger:
-        if (true)
-            return true;
-        /*
-        removeStepMark();
+        // Note: we deliberately don't call removeStepMark() here.  That would hide all
+        // the variable displays from earlier steps, which the execution-history arrows
+        // are anchored to.  The displays and history are cleared in removeStepMark(),
+        // which is called when execution ends (e.g. the VM closes).
         setVisibleFX(true, true, false);
-        HashMap<String, DebugVarInfo> vars = new HashMap<String, DebugVarInfo>();
-        if (thread != null) {
+        if (thread == null)
+        {
+            showStepMark(lineNumber, new HashMap<>(), null);
+            return true;
+        }
+        // Fetching the fields must happen on the VM event handler thread; we then
+        // build the variable displays back on the FX thread:
+        Map<String, Set<String>> restrictedClasses = pkg.getProject().getExecControls().getRestrictedClasses();
+        getPackage().getProject().getDebugger().runOnEventHandler(() -> {
             DebuggerObject currentObject = thread.getCurrentObject(0);
-            if (currentObject != null && !currentObject.isNullObject()) {
-                Map<String, Set<String>> restrictedClasses = pkg.getProject().getExecControls().getRestrictedClasses();
-                List<DebuggerField> fields = currentObject.getFields();
+            List<DebuggerField> fields = (currentObject != null && !currentObject.isNullObject()) ? currentObject.getFields() : Collections.emptyList();
+            List<FXPlatformSupplier<VarDisplayInfo>> locals = thread.getLocalVariables(0);
+            Platform.runLater(() -> {
+                HashMap<String, DebugVarInfo> vars = new HashMap<String, DebugVarInfo>();
                 for (DebuggerField field : fields)
                 {
                     if (! Modifier.isStatic(field.getModifiers())) {
@@ -893,8 +910,21 @@ public class FrameEditor implements Editor
                         }
                     }
                 }
-            }
-        }
+                // Locals are added last so that they shadow any fields of the same name:
+                for (FXPlatformSupplier<VarDisplayInfo> local : locals)
+                {
+                    VarDisplayInfo info = local.get();
+                    vars.put(info.getName(), new LocalDebugVarInfo(pkg, null, info));
+                }
+                showStepMark(lineNumber, vars, thread);
+            });
+        });
+        return true;
+    }
+
+    @OnThread(Tag.FXPlatform)
+    private void showStepMark(int lineNumber, HashMap<String, DebugVarInfo> vars, DebuggerThread thread)
+    {
         debugInfo.addVarState(vars, execHistory.size());
         panel.showDebuggerControls(thread);
         if (curBreakpoint != null) {
@@ -932,8 +962,6 @@ public class FrameEditor implements Editor
                 Debug.reportError("Exception attempting to save Java source for Stride class", ioe);
             }
         });
-        */
-        return true;
     }
 
     @Override
@@ -945,12 +973,14 @@ public class FrameEditor implements Editor
     @Override
     public void removeStepMark()
     {
-        /*
-        Platform.runLater(() -> {
+        JavaFXUtil.runAfterCurrent(() -> {
             if (debugInfo != null)
                 debugInfo.hideAllDisplays();
+            // The displays are gone, so the history which refers to them is stale:
+            execHistory.clear();
+            curBreakpoint = null;
+            panel.redrawExecHistory(execHistory);
         });
-        */
     }
 
     @Override

@@ -63,6 +63,7 @@ public class DebugInfo
     @OnThread(value = Tag.Any, requireSynchronized = true)
     private Map<String,DebugVarInfo> prevState, state;
     private final SimpleBooleanProperty showVars = new SimpleBooleanProperty(false);
+    private final SimpleBooleanProperty showLocals = new SimpleBooleanProperty(false);
     private int stateIndex;
 
     @OnThread(Tag.Any)
@@ -130,6 +131,11 @@ public class DebugInfo
     public void bindVarVisible(ObservableBooleanValue showVars)
     {
         this.showVars.bind(showVars);
+    }
+
+    public void bindLocalsVisible(ObservableBooleanValue showLocals)
+    {
+        this.showLocals.bind(showLocals);
     }
 
     public class Display extends AnchorPane implements HighlightedBreakpoint
@@ -205,8 +211,9 @@ public class DebugInfo
                 row.getChildren().addAll(k, v);
                 disp.add(row, index % 3, index / 3);
                 row.getStyleClass().add("debug-info");
-                row.managedProperty().bind(showVars);
-                row.visibleProperty().bind(showVars);
+                BooleanBinding rowVisible = var.getValue().isLocal() ? showVars.and(showLocals) : Bindings.createBooleanBinding(showVars::get, showVars);
+                row.managedProperty().bind(rowVisible);
+                row.visibleProperty().bind(rowVisible);
                 index += 1;
             }
             return disp;

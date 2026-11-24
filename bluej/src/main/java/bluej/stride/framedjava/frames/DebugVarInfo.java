@@ -36,4 +36,14 @@ public interface DebugVarInfo
      */
     @OnThread(Tag.FXPlatform)
     String getInternalValueString(); 
+
+    /**
+     * Whether this is a local variable (as opposed to a field).  Locals are only
+     * shown when the user picks "All" in the debugger controls.
+     */
+    @OnThread(Tag.Any)
+    default boolean isLocal()
+    {
+        return false;
+    }
 }

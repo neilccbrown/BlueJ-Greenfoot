@@ -218,6 +218,7 @@ public class FrameEditorTab extends FXTab implements InteractionManager, Suggest
     private Canvas execHistoryCanvas;
     private final Set<Node> execNodesListenedTo = new HashSet<>();
     private final SimpleBooleanProperty debugVarVisibleProperty = new SimpleBooleanProperty(false);
+    private final SimpleBooleanProperty debugLocalsVisibleProperty = new SimpleBooleanProperty(false);
     private List<HighlightedBreakpoint> latestExecHistory;
     private StringBinding strideFontSizeAsString;
     private StringExpression strideFontCSS;
@@ -839,6 +840,12 @@ public class FrameEditorTab extends FXTab implements InteractionManager, Suggest
         return debugVarVisibleProperty;
     }
 
+    // package-visible
+    ObservableBooleanValue debugLocalsVisibleProperty()
+    {
+        return debugLocalsVisibleProperty;
+    }
+
     @OnThread(Tag.FXPlatform)
     public void addExtends(String className)
     {
@@ -912,15 +919,17 @@ public class FrameEditorTab extends FXTab implements InteractionManager, Suggest
     @OnThread(Tag.Any)
     private static enum ShowVars
     {
-        NONE, FIELDS;
+        NONE, FIELDS, ALL;
 
         @Override
         public String toString()
         {
             if (this == NONE)
                 return "None";
-            else
+            else if (this == FIELDS)
                 return "Fields";
+            else
+                return "All";
         }
     }
 
@@ -944,8 +953,11 @@ public class FrameEditorTab extends FXTab implements InteractionManager, Suggest
         // Halt does nothing at the moment
         Label showVarLabel = new Label("Show variables: ");
         ComboBox<ShowVars> showVars = new ComboBox<>(FXCollections.observableArrayList(ShowVars.values()));
-        showVars.getSelectionModel().select(0);
-        JavaFXUtil.addChangeListenerAndCallNow(showVars.getSelectionModel().selectedItemProperty(), newVal -> debugVarVisibleProperty.set(newVal == ShowVars.FIELDS));
+        showVars.getSelectionModel().select(ShowVars.ALL);
+        JavaFXUtil.addChangeListenerAndCallNow(showVars.getSelectionModel().selectedItemProperty(), newVal -> {
+            debugVarVisibleProperty.set(newVal == ShowVars.FIELDS || newVal == ShowVars.ALL);
+            debugLocalsVisibleProperty.set(newVal == ShowVars.ALL);
+        });
 
         buttons.getChildren().addAll(stepButton, continueButton, haltButton, showVarLabel, showVars);
         contentRoot.setBottom(buttons);

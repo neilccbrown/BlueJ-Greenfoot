@@ -80,9 +80,8 @@ public class StrideDictionary extends FrameDictionary<StrideCategory>
             new Entry<>('v', VarFrame.getFactory(), false, StrideCategory.VAR, "stride.dictionary.variable.name", "stride.dictionary.variable.description"),
             new Entry<>('w', WhileFrame.getFactory(), true, StrideCategory.LOOP, "stride.dictionary.while.name", "stride.dictionary.while.description"),
             new Entry<>('x', ThrowFrame.getFactory(), false, StrideCategory.THROW, "stride.dictionary.throw.name", "stride.dictionary.throw.description"),
-            new Entry<>('y', TryFrame.getFactory(), true, StrideCategory.TRY, "stride.dictionary.try.name", "stride.dictionary.try.description")
-            //TODO When implementing a stride debugger.
-            //new Entry<>('z', BreakpointFrame.getFactory(), false, StrideCategory.COMMENT, "stride.dictionary.breakpoint.name", "stride.dictionary.breakpoint.description")
+            new Entry<>('y', TryFrame.getFactory(), true, StrideCategory.TRY, "stride.dictionary.try.name", "stride.dictionary.try.description"),
+            new Entry<>('z', BreakpointFrame.getFactory(), false, StrideCategory.COMMENT, "stride.dictionary.breakpoint.name", "stride.dictionary.breakpoint.description")
         ));
 
         extensions.put("catch", 'c');

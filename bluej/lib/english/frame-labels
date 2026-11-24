@@ -60,6 +60,8 @@ stride.dictionary.throw.name=Throw
 stride.dictionary.throw.description=Throws an exception
 stride.dictionary.try.name=Try/catch
 stride.dictionary.try.description=Try block
+stride.dictionary.breakpoint.name=Breakpoint
+stride.dictionary.breakpoint.description=Pause execution here when debugging
 
 
 # Error Bar:
